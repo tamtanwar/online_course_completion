@@ -1,62 +1,51 @@
-# main.py
 from fastapi import FastAPI
 from pydantic import BaseModel
 from app.inference import InferenceModel
-import uvicorn
-import os
 
-# -------------------------------
-# 1. Define input schema
-# -------------------------------
-class StudentData(BaseModel):
+# Initialize FastAPI app
+app = FastAPI(title="Online Course Completion Prediction API")
+
+# Load all models
+baseline_model = InferenceModel("saved_models/baseline_logreg.pkl")
+rf_model = InferenceModel("saved_models/random_forest_v1.pkl")
+gb_model = InferenceModel("saved_models/gradient_boosting_v1.pkl")
+
+# Define input schema
+class StudentInput(BaseModel):
     age: int
     hours_per_week: float
     country: str
-    # Add any other features your model expects
-    # Example:
-    # assignments_submitted: int
-    # favorite_color: str
+    # add all other features your model expects, e.g.:
+    # education_level: str
     # num_logins_last_month: int
-    # ...
+    # videos_watched_pct: float
+    # assignments_submitted: int
+    # discussion_posts: int
+    # is_working_professional: int
+    # preferred_device: str
+    # weight_kg: float
+    # height_cm: float
 
-# -------------------------------
-# 2. Initialize FastAPI app
-# -------------------------------
-app = FastAPI(
-    title="Online Course Completion Prediction API",
-    description="Send student features and get course completion prediction",
-    version="1.0"
-)
-
-# -------------------------------
-# 3. Load inference model
-# -------------------------------
-# Make sure the path points to your saved model
-model_path = os.path.join("saved_models", "baseline_logreg.joblib")
-model = InferenceModel(model_path=model_path)
-
-# -------------------------------
-# 4. Define endpoints
-# -------------------------------
 @app.get("/")
-def read_root():
-    return {"message": "Welcome! Use /predict endpoint to get predictions."}
+def root():
+    return {"message": "Online Course Completion Prediction API is running!"}
 
 @app.post("/predict")
-def predict(student: StudentData):
-    # Convert Pydantic model to dictionary
-    student_dict = student.dict()
+def predict(student: StudentInput, model_type: str = "baseline"):
+    # Convert input to dict
+    input_data = student.dict()
     
-    # Run inference
-    result = model.predict(student_dict)
+    # Choose model
+    if model_type.lower() == "baseline":
+        model = baseline_model
+    elif model_type.lower() == "random_forest":
+        model = rf_model
+    elif model_type.lower() == "gradient_boosting":
+        model = gb_model
+    else:
+        return {"error": "Invalid model_type. Choose 'baseline', 'random_forest', or 'gradient_boosting'"}
     
-    return {
-        "prediction": result["prediction"],
-        "probability": result["probability"]
-    }
-
-# -------------------------------
-# 5. Run the server
-# -------------------------------
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Make prediction
+    result = model.predict(input_data)
+    
+    return {"model_type": model_type, "prediction": result["prediction"], "probability": result["probability"]}

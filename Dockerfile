@@ -1,21 +1,20 @@
-# Use a lightweight Python image
+# Use official Python image
 FROM python:3.12-slim
 
-# Set working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Upgrade pip
-RUN pip install --upgrade pip
+# Copy requirements
+COPY requirements.txt .
 
-# Install exact versions of packages to match your local environment
-RUN pip install fastapi==0.104.0 uvicorn==0.23.0 \
-    numpy==1.26.4 pandas==2.2.2 scikit-learn==1.5.1 joblib==1.3.2
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all project files into the container
+# Copy the entire project into the container
 COPY . .
 
-# Expose port 8000
+# Expose the port FastAPI will run on
 EXPOSE 8000
 
-# Run FastAPI server
-CMD ["python", "main.py"]
+# Run the FastAPI app with uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
