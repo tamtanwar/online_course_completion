@@ -3,3 +3,6 @@
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+# Ignore large model files
+saved_models/*.joblib
+saved_models/*.pkl
